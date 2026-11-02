@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажер Капчі UKRAINE GTA - Швидкість</title>
+    <style>
+        body {
+            background-color: #0b0b0f;
+            color: #ffffff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            user-select: none;
+        }
+        /* Головне вікно точно за скриншотом */
+        .game-window {
+            background: #282828;
+            width: 380px;
+            border-top: 3px solid #df9526; /* Помаранчево-жовта смуга вгорі */
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            text-align: center;
+            padding: 16px 0 24px 0;
+            box-sizing: border-box;
+        }
+        .title {
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin: 0 0 2px 0;
+            color: #ffffff;
+        }
+        .subtitle {
+            font-size: 12px;
+            color: #929292;
+            margin: 0 0 16px 0;
+        }
+        /* Контейнер для тексту капчі */
+        .captcha-display {
+            background: #1c1c1c;
+            width: 80%;
+            margin: 0 auto 16px auto;
+            padding: 10px 0;
+            font-size: 26px;
+            font-weight: 700;
+            color: #f2bd3f; /* Точний золотаво-жовтий колір літер */
+            letter-spacing: 1.5px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        /* Поле для введення */
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #444449;
+            background: #121214;
+            color: #ffffff;
+            text-align: center;
+            outline: none;
+            text-transform: uppercase;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            border-color: #df9526;
+        }
+        #message {
+            margin-top: 10px;
+            height: 16px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        
+        /* Розширена панель аналітики */
+        .stats-panel {
+            margin-top: 20px;
+            width: 380px;
+            background: #141418;
+            border: 1px solid #222227;
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #929292;
+        }
+        .stat-val {
+            color: #ffffff;
+            font-weight: bold;
+        }
+        .stat-val.highlight {
+            color: #f2bd3f;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-window">
+    <div class="title">Перевірка безпеки</div>
+    <div class="subtitle">Введіть код нижче</div>
+    
+    <!-- Текст капчі -->
+    <div class="captcha-display" id="captchaText">LOADING...</div>
+
+    <!-- Поле для введення гравцем -->
+    <input type="text" id="captchaInput" placeholder="Введіть код..." autocomplete="off" maxlength="8" autofocus>
+    
+    <div id="message"></div>
+</div>
+
+<!-- Блок розширеної статистики -->
+<div class="stats-panel">
+    <div class="stats-row">
+        <div>Правильних: <span id="scoreSuccess" class="stat-val">0</span></div>
+        <div>Помилок: <span id="scoreErrors" class="stat-val">0</span></div>
+        <div>Серія: <span id="scoreStreak" class="stat-val">0</span></div>
+    </div>
+    <div class="stats-row" style="border-top: 1px solid #222227; padding-top: 8px;">
+        <div>Час першої літери: <span id="timeFirst" class="stat-val highlight">0.000 сек</span></div>
+        <div>Загальний час: <span id="timeTotal" class="stat-val highlight">0.000 сек</span></div>
+    </div>
+</div>
+
+<script>
+    const captchaText = document.getElementById('captchaText');
+    const input = document.getElementById('captchaInput');
+    const message = document.getElementById('message');
+    
+    let currentCode = "";
+    let stats = { success: 0, errors: 0, streak: 0 };
+    
+    // Таймінги
+    let startTime = 0;
+    let firstKeyTime = 0;
+    let isFirstKeyTyped = false;
+
+    // Символи для генерації (ENG літери та цифри)
+    const allowedChars = "ABCDEFGHJKLMNOPQRSTUVWXYZ123456789";
+
+    function generateCaptcha() {
+        currentCode = "";
+        input.value = "";
+        message.textContent = "";
+        message.className = "";
+        
+        // Скидання тригерів часу
+        isFirstKeyTyped = false;
+        
+        // Рівно 8 знаків
+        for (let i = 0; i < 8; i++) {
+            currentCode += allowedChars[Math.floor(Math.random() * allowedChars.length)];
+        }
+        
+        captchaText.textContent = currentCode;
+        
+        // Фіксуємо час появи нової капчі
+        startTime = performance.now();
+    }
+
+    // Відстежуємо натискання першої літери
+    input.addEventListener('keydown', function() {
+        if (!isFirstKeyTyped && input.value.length === 0) {
+            firstKeyTime = performance.now();
+            isFirstKeyTyped = true;
+        }
+    });
+
+    // Автоперевірка на льоту при досягненні 8 символів
+    input.addEventListener('input', function() {
+        let userValue = input.value.trim().toUpperCase();
+        
+        if (userValue.length === 8) {
+            const endTime = performance.now();
+            
+            // Розрахунок часу в секундах з точністю до мілісекунд
+            const totalDuration = ((endTime - startTime) / 1000).toFixed(3);
+            const firstKeyDuration = isFirstKeyTyped ? ((firstKeyTime - startTime) / 1000).toFixed(3) : "0.000";
+
+            if (userValue === currentCode) {
+                message.textContent = "Успішно підтверджено";
+                message.className = "success";
+                stats.success++;
+                stats.streak++;
+                
+                // Виводимо час лише при успішному введенні
+                document.getElementById('timeFirst').textContent = firstKeyDuration + " сек";
+                document.getElementById('timeTotal').textContent = totalDuration + " сек";
+                
+                updateStats();
+                setTimeout(generateCaptcha, 250);
+            } else {
+                message.textContent = "Код невірний!";
+                message.className = "error";
+                stats.errors++;
+                stats.streak = 0;
+                
+                document.getElementById('timeFirst').textContent = "0.000 сек";
+                document.getElementById('timeTotal').textContent = "0.000  сек";
+                
+                updateStats();
+                setTimeout(generateCaptcha, 500);
+            }
+        }
+    });
+
+    function updateStats() {
+        document.getElementById('scoreSuccess').textContent = stats.success;
+        document.getElementById('scoreErrors').textContent = stats.errors;
+        document.getElementById('scoreStreak').textContent = stats.streak;
+    }
+
+    window.onload = function() {
+        generateCaptcha();
+        input.focus();
+    };
+</script>
+
+</body>
+</html>
