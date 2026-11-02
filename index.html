@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тренажер Капчі UKRAINE GTA - Швидкість</title>
+    <title>Тренажер Капчі UKRAINE GTA - Рекорди</title>
     <style>
         body {
             background-color: #0b0b0f;
@@ -104,6 +104,9 @@
         .stat-val.highlight {
             color: #f2bd3f;
         }
+        .stat-val.record {
+            color: #4ade80;
+        }
     </style>
 </head>
 <body>
@@ -121,7 +124,7 @@
     <div id="message"></div>
 </div>
 
-<!-- Блок розширеної статистики -->
+<!-- Блок розширеної статистики з найкращим результатом -->
 <div class="stats-panel">
     <div class="stats-row">
         <div>Правильних: <span id="scoreSuccess" class="stat-val">0</span></div>
@@ -129,8 +132,13 @@
         <div>Серія: <span id="scoreStreak" class="stat-val">0</span></div>
     </div>
     <div class="stats-row" style="border-top: 1px solid #222227; padding-top: 8px;">
-        <div>Час першої літери: <span id="timeFirst" class="stat-val highlight">0.000 сек</span></div>
-        <div>Загальний час: <span id="timeTotal" class="stat-val highlight">0.000 сек</span></div>
+        <div>Час 1-ї літери: <span id="timeFirst" class="stat-val highlight">0.000 сек</span></div>
+        <div>Останній час: <span id="timeTotal" class="stat-val highlight">0.000 сек</span></div>
+    </div>
+    <div class="stats-row" style="border-top: 1px solid #222227; padding-top: 8px; justify-content: center;">
+        <div style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+            🏆 Найкращий результат: <span id="bestTime" class="stat-val record">--.--- сек</span>
+        </div>
     </div>
 </div>
 
@@ -141,6 +149,7 @@
     
     let currentCode = "";
     let stats = { success: 0, errors: 0, streak: 0 };
+    let bestTime = null; // Зберігання найкращого результату
     
     // Таймінги
     let startTime = 0;
@@ -156,7 +165,6 @@
         message.textContent = "";
         message.className = "";
         
-        // Скидання тригерів часу
         isFirstKeyTyped = false;
         
         // Рівно 8 знаків
@@ -185,9 +193,10 @@
         if (userValue.length === 8) {
             const endTime = performance.now();
             
-            // Розрахунок часу в секундах з точністю до мілісекунд
-            const totalDuration = ((endTime - startTime) / 1000).toFixed(3);
-            const firstKeyDuration = isFirstKeyTyped ? ((firstKeyTime - startTime) / 1000).toFixed(3) : "0.000";
+            // Розрахунок часу в секундах
+            const totalDurationSec = (endTime - startTime) / 1000;
+            const totalDurationStr = totalDurationSec.toFixed(3);
+            const firstKeyDurationStr = isFirstKeyTyped ? ((firstKeyTime - startTime) / 1000).toFixed(3) : "0.000";
 
             if (userValue === currentCode) {
                 message.textContent = "Успішно підтверджено";
@@ -195,9 +204,15 @@
                 stats.success++;
                 stats.streak++;
                 
-                // Виводимо час лише при успішному введенні
-                document.getElementById('timeFirst').textContent = firstKeyDuration + " сек";
-                document.getElementById('timeTotal').textContent = totalDuration + " сек";
+                // Виводимо час поточної спроби
+                document.getElementById('timeFirst').textContent = firstKeyDurationStr + " сек";
+                document.getElementById('timeTotal').textContent = totalDurationStr + " сек";
+                
+                // Оновлення найкращого результату (рекорду)
+                if (bestTime === null || totalDurationSec < bestTime) {
+                    bestTime = totalDurationSec;
+                    document.getElementById('bestTime').textContent = totalDurationStr + " сек";
+                }
                 
                 updateStats();
                 setTimeout(generateCaptcha, 250);
@@ -208,7 +223,7 @@
                 stats.streak = 0;
                 
                 document.getElementById('timeFirst').textContent = "0.000 сек";
-                document.getElementById('timeTotal').textContent = "0.000  сек";
+                document.getElementById('timeTotal').textContent = "0.000 сек";
                 
                 updateStats();
                 setTimeout(generateCaptcha, 500);
